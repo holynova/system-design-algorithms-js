@@ -1,0 +1,9 @@
+name = "system-design-algorithms-js"
+compatibility_date = "2026-09-21"
+
+routes = [
+  { pattern = "system-design-algorithms-js.xiaosang.cc", custom_domain = true }
+]
+
+[assets]
+directory = "."
