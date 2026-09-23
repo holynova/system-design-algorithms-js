@@ -9,8 +9,19 @@ const state = {
   theme: localStorage.getItem("theme") || "dark"
 };
 
+// Helper to switch highlight.js theme according to dark/light mode
+function updateHljsTheme(theme) {
+  const hljsThemeEl = document.getElementById("hljsTheme");
+  if (hljsThemeEl) {
+    hljsThemeEl.href = theme === "dark"
+      ? "./web/highlight-github-dark.min.css"
+      : "./web/highlight-github-light.min.css";
+  }
+}
+
 // Apply initial theme
 document.documentElement.setAttribute("data-theme", state.theme);
+updateHljsTheme(state.theme);
 
 // Initialize Mermaid.js
 if (window.mermaid) {
@@ -186,7 +197,7 @@ async function renderMainContent(chapter) {
             <span class="file-path">${f.path}</span>
             <button class="copy-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(f.code)}')).then(() => alert('代码已复制到剪贴板！'))">复制源码</button>
           </div>
-          <pre class="code-block"><code>${escapeHtml(f.code)}</code></pre>
+          <pre class="code-block"><code class="language-javascript">${escapeHtml(f.code)}</code></pre>
         </div>
       `).join("")}
     </div>
@@ -202,6 +213,17 @@ async function renderMainContent(chapter) {
     } catch (e) {
       console.warn("Mermaid render error:", e);
     }
+  }
+
+  // Highlight syntax using Highlight.js
+  if (window.hljs) {
+    mainEl.querySelectorAll("pre.code-block code").forEach(block => {
+      try {
+        window.hljs.highlightElement(block);
+      } catch (err) {
+        console.warn("Highlight error:", err);
+      }
+    });
   }
 
   // Bind playground actions
@@ -599,6 +621,7 @@ function init() {
     state.theme = nextTheme;
     localStorage.setItem("theme", nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
+    updateHljsTheme(nextTheme);
     document.getElementById("themeToggleBtn").innerHTML = nextTheme === "dark" ? "🌙 暗黑模式" : "☀️ 明亮模式";
     
     // Re-render current chapter to adjust mermaid
