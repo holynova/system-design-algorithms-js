@@ -1,0 +1,26 @@
+{
+  "name": "system-design-algorithms-js",
+  "version": "1.0.0",
+  "description": "Classic system design algorithms implemented in JavaScript (Node.js ES Modules) based on Alex Xu's System Design Interview book.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "demo": "node examples/run-all-demos.js",
+    "web": "node web/server.js"
+  },
+  "homepage": "https://holynova.github.io/system-design-algorithms-js/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holynova/system-design-algorithms-js.git"
+  },
+  "keywords": [
+    "system-design",
+    "algorithms",
+    "javascript",
+    "interview-preparation",
+    "distributed-systems"
+  ],
+  "author": "holy_nova",
+  "license": "MIT"
+}
