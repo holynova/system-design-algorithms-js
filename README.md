@@ -72,8 +72,8 @@
 | **Ch02** | 粗略容量估算 | **容量计算器与数据延迟表**<br>• QPS、峰值系数、存储容量、网络带宽、Pareto 80/20 缓存内存<br>• Jeff Dean 延迟常数表与 2 的幂阶换算 | [`capacity-calculator.js`](src/v1/ch02-estimation/capacity-calculator.js) | $O(1)$ |
 | **Ch03** | 系统设计面试框架 | **4 步面试法评估器与自查清单**<br>• 需求范围梳理、高层架构、深入细节、演进与总结自测模型 | [`interview-evaluator.js`](src/v1/ch03-framework/interview-evaluator.js) | $O(1)$ |
 | **Ch04** | 设计分布式限流器 | **五大工业级限流算法全套实现**：<br>1. 令牌桶 (Token Bucket 惰性填充)<br>2. 漏桶 (Leaky Bucket 恒定漏水削峰)<br>3. 固定窗口计数器 (Fixed Window)<br>4. 滑动窗口日志 (Sliding Window Log 纳秒精细清理)<br>5. 滑动窗口计数器 (Sliding Window Counter 加权近似) | [`token-bucket.js`](src/v1/ch04-rate-limiter/token-bucket.js)<br>[`leaky-bucket.js`](src/v1/ch04-rate-limiter/leaky-bucket.js)<br>[`fixed-window.js`](src/v1/ch04-rate-limiter/fixed-window.js)<br>[`sliding-window-log.js`](src/v1/ch04-rate-limiter/sliding-window-log.js)<br>[`sliding-window-counter.js`](src/v1/ch04-rate-limiter/sliding-window-counter.js) | 常数级 $O(1)$<br>(日志为 $O(M)$) |
-| **Ch05** | 一致性哈希 | **一致性哈希环 (Consistent Hashing Ring)**<br>• 虚拟节点 (Virtual Nodes) 消除负载倾斜<br>• 二分查找二叉树/有序数组顺时针后继节点<br>• 扩缩容最小化节点键迁移量追踪 | [`consistent-hash-ring.js`](src/v1/ch05-consistent-hash/consistent-hash-ring.js) | Lookup: $O(\log(M \cdot V))$ |
-| **Ch06** | 分布式 KV 存储 | **分布式存储四大支柱算法**：<br>1. 向量时钟 (Vector Clock 因果版本检测与分支合并)<br>2. 默克尔树 (Merkle Tree 反熵差异快速定位)<br>3. 布隆过滤器 (Bloom Filter 双哈希极低空间判存)<br>4. 流言协议 (Gossip Protocol 节点心跳与故障检测)<br>5. 法定人数共识 (Quorum Consensus $W + R > N$) | [`vector-clock.js`](src/v1/ch06-kv-store/vector-clock.js)<br>[`merkle-tree.js`](src/v1/ch06-kv-store/merkle-tree.js)<br>[`bloom-filter.js`](src/v1/ch06-kv-store/bloom-filter.js)<br>[`gossip-protocol.js`](src/v1/ch06-kv-store/gossip-protocol.js)<br>[`quorum-consensus.js`](src/v1/ch06-kv-store/quorum-consensus.js) | 树比对: $O(\log N)$<br>布隆: $O(K)$ |
+| **Ch05** | 一致性哈希 | **一致性哈希环 (Consistent Hashing Ring)**<br>• 虚拟节点 (Virtual Nodes) 消除负载倾斜<br>• 二分查找有序数组，顺时针定位后继节点<br>• 扩缩容最小化节点键迁移量追踪 | [`consistent-hash-ring.js`](src/v1/ch05-consistent-hash/consistent-hash-ring.js) | Lookup: $O(\log(M \cdot V))$ |
+| **Ch06** | 分布式 KV 存储 | **分布式存储五大支柱算法**：<br>1. 向量时钟 (Vector Clock 因果版本检测与分支合并)<br>2. 默克尔树 (Merkle Tree 反熵差异快速定位)<br>3. 布隆过滤器 (Bloom Filter 双哈希极低空间判存)<br>4. 流言协议 (Gossip Protocol 节点心跳与故障检测)<br>5. 法定人数共识 (Quorum Consensus $W + R > N$) | [`vector-clock.js`](src/v1/ch06-kv-store/vector-clock.js)<br>[`merkle-tree.js`](src/v1/ch06-kv-store/merkle-tree.js)<br>[`bloom-filter.js`](src/v1/ch06-kv-store/bloom-filter.js)<br>[`gossip-protocol.js`](src/v1/ch06-kv-store/gossip-protocol.js)<br>[`quorum-consensus.js`](src/v1/ch06-kv-store/quorum-consensus.js) | 树比对: $O(\log N)$<br>布隆: $O(K)$ |
 | **Ch07** | 分布式唯一 ID | **Twitter Snowflake 64 位雪花算法**<br>• 64 位 BigInt 结构 (符号位 + 41位时间戳 + 5位机房 + 5位机器 + 12位序列号)<br>• 时钟回拨防御、同毫秒 4096 溢出等待与反向解析器 | [`snowflake.js`](src/v1/ch07-unique-id/snowflake.js) | $O(1)$ |
 | **Ch08** | 短网址系统 | **短码生成与哈希碰撞算法**：<br>1. Base62 双向双射编解码 (自增 ID 压缩)<br>2. 截断哈希加盐线性探测冲突解决器 | [`base62.js`](src/v1/ch08-url-shortener/base62.js)<br>[`short-hash-resolver.js`](src/v1/ch08-url-shortener/short-hash-resolver.js) | $O(\log_{62} N) \approx O(1)$ |
 | **Ch09** | 分布式网络爬虫 | **爬虫调度与指纹查重**：<br>1. 礼貌性与优先级 URL Frontier (双层队列 + 域名速率限制)<br>2. SimHash 局部敏感哈希 (64 位指纹与海明距离相似度) | [`polite-url-frontier.js`](src/v1/ch09-crawler/polite-url-frontier.js)<br>[`sim-hash.js`](src/v1/ch09-crawler/sim-hash.js) | SimHash: $O(L)$<br>Frontier: $O(1)$ |
@@ -114,7 +114,7 @@
 ```bash
 npm test
 ```
-> 包含 30 个独立测试套件、58 项核心测试用例，100% 通过（耗时通常小于 200ms）。
+> 包含 30 个独立测试套件、58 项核心测试用例，100% 通过（通常只需数百毫秒）。
 
 ### 2. 启动本地交互式可视化 Web 门户
 ```bash
@@ -126,7 +126,7 @@ npm run web
 ```bash
 npm run demo
 ```
-一键运行全量算法的控制台控制台输入输出与边界演示。
+一键运行全量算法的控制台输入输出与边界演示。
 
 ### 4. 单独运行某一个算法的自包含演示
 每个算法源码均自包含完整 Demo，可直接使用 node 执行：

@@ -64,68 +64,11 @@ export const CHAPTERS_DATA = [
     files: [
       {
         name: "lru-cache.js",
-        path: "src/v1/ch01-cache/lru-cache.js",
-        code: `class DListNode {
-  constructor(key = null, value = null) {
-    this.key = key;
-    this.value = value;
-    this.prev = null;
-    this.next = null;
-  }
-}
-
-export class LRUCache {
-  constructor(capacity) {
-    if (capacity <= 0) throw new Error("Capacity must be positive");
-    this.capacity = capacity;
-    this.map = new Map();
-    this.head = new DListNode();
-    this.tail = new DListNode();
-    this.head.next = this.tail;
-    this.tail.prev = this.head;
-  }
-
-  get(key) {
-    const node = this.map.get(key);
-    if (!node) return undefined;
-    this._moveToHead(node);
-    return node.value;
-  }
-
-  put(key, value) {
-    let node = this.map.get(key);
-    if (node) {
-      node.value = value;
-      this._moveToHead(node);
-      return;
-    }
-    if (this.map.size >= this.capacity) {
-      const lru = this.tail.prev;
-      this._removeNode(lru);
-      this.map.delete(lru.key);
-    }
-    const newNode = new DListNode(key, value);
-    this.map.set(key, newNode);
-    this._addToHead(newNode);
-  }
-
-  _removeNode(node) {
-    node.prev.next = node.next;
-    node.next.prev = node.prev;
-  }
-
-  _addToHead(node) {
-    node.next = this.head.next;
-    node.prev = this.head;
-    this.head.next.prev = node;
-    this.head.next = node;
-  }
-
-  _moveToHead(node) {
-    this._removeNode(node);
-    this._addToHead(node);
-  }
-}`
+        path: "src/v1/ch01-cache/lru-cache.js"
+      },
+      {
+        name: "lfu-cache.js",
+        path: "src/v1/ch01-cache/lfu-cache.js"
       }
     ]
   },
@@ -171,31 +114,7 @@ export class LRUCache {
     files: [
       {
         name: "capacity-calculator.js",
-        path: "src/v1/ch02-estimation/capacity-calculator.js",
-        code: `export class CapacityCalculator {
-  static SECONDS_PER_DAY = 86400;
-
-  static calculateQps({ dailyActiveUsers, requestsPerUserPerDay, peakFactor = 2 }) {
-    const totalDailyRequests = dailyActiveUsers * requestsPerUserPerDay;
-    const avgQps = Math.ceil(totalDailyRequests / this.SECONDS_PER_DAY);
-    const peakQps = Math.ceil(avgQps * peakFactor);
-    return { totalDailyRequests, avgQps, peakQps };
-  }
-
-  static calculateStorage({ dailyWrites, avgRecordSizeBytes, retentionYears = 5, replicationFactor = 3 }) {
-    const dailyStorageBytes = dailyWrites * avgRecordSizeBytes;
-    const yearlyStorageBytes = dailyStorageBytes * 365;
-    const totalRetentionBytes = yearlyStorageBytes * retentionYears;
-    const totalWithReplication = totalRetentionBytes * replicationFactor;
-    return { dailyStorageBytes, totalRetentionBytes, totalWithReplication };
-  }
-
-  static calculateCacheMemory({ dailyReads, avgReadSizeBytes, cacheRatio = 0.2 }) {
-    const totalDailyReadBytes = dailyReads * avgReadSizeBytes;
-    const requiredMemoryBytes = Math.ceil(totalDailyReadBytes * cacheRatio);
-    return { totalDailyReadBytes, requiredMemoryBytes };
-  }
-}`
+        path: "src/v1/ch02-estimation/capacity-calculator.js"
       }
     ]
   },
@@ -247,33 +166,7 @@ export class LRUCache {
     files: [
       {
         name: "interview-evaluator.js",
-        path: "src/v1/ch03-framework/interview-evaluator.js",
-        code: `export class InterviewEvaluationEngine {
-  constructor() {
-    this.checklist = {
-      step1Clarification: false,
-      step2HighLevel: false,
-      step3DeepDive: false,
-      step4WrapUp: false
-    };
-  }
-
-  completeStep(stepName) {
-    if (this.checklist[stepName] !== undefined) {
-      this.checklist[stepName] = true;
-    }
-  }
-
-  evaluateReadiness() {
-    const completed = Object.values(this.checklist).filter(Boolean).length;
-    const score = (completed / 4) * 100;
-    return {
-      score,
-      isPass: score >= 75,
-      recommendation: score >= 75 ? "Strong Hire" : "Needs Practice on Framework"
-    };
-  }
-}`
+        path: "src/v1/ch03-framework/interview-evaluator.js"
       }
     ]
   },
@@ -342,64 +235,23 @@ HTTP 状态码 <code>429 Too Many Requests</code> 是其标准响应。本章实
     files: [
       {
         name: "token-bucket.js",
-        path: "src/v1/ch04-rate-limiter/token-bucket.js",
-        code: `export class TokenBucketRateLimiter {
-  constructor({ capacity, refillRatePerSecond }) {
-    this.capacity = capacity;
-    this.refillRate = refillRatePerSecond;
-    this.tokens = capacity;
-    this.lastRefillTime = Date.now();
-  }
-
-  allowRequest(tokensRequired = 1, now = Date.now()) {
-    this._refill(now);
-    if (this.tokens >= tokensRequired) {
-      this.tokens -= tokensRequired;
-      return true;
-    }
-    return false;
-  }
-
-  _refill(now) {
-    const elapsedSeconds = Math.max(0, (now - this.lastRefillTime) / 1000);
-    const addedTokens = elapsedSeconds * this.refillRate;
-    this.tokens = Math.min(this.capacity, this.tokens + addedTokens);
-    this.lastRefillTime = now;
-  }
-}`
+        path: "src/v1/ch04-rate-limiter/token-bucket.js"
+      },
+      {
+        name: "leaky-bucket.js",
+        path: "src/v1/ch04-rate-limiter/leaky-bucket.js"
+      },
+      {
+        name: "fixed-window.js",
+        path: "src/v1/ch04-rate-limiter/fixed-window.js"
+      },
+      {
+        name: "sliding-window-log.js",
+        path: "src/v1/ch04-rate-limiter/sliding-window-log.js"
       },
       {
         name: "sliding-window-counter.js",
-        path: "src/v1/ch04-rate-limiter/sliding-window-counter.js",
-        code: `export class SlidingWindowCounterRateLimiter {
-  constructor({ windowSizeMs = 1000, maxRequests = 10 }) {
-    this.windowSizeMs = windowSizeMs;
-    this.maxRequests = maxRequests;
-    this.currentWindowKey = 0;
-    this.currentCount = 0;
-    this.previousCount = 0;
-  }
-
-  allowRequest(now = Date.now()) {
-    const windowKey = Math.floor(now / this.windowSizeMs);
-    if (windowKey !== this.currentWindowKey) {
-      if (windowKey === this.currentWindowKey + 1) {
-        this.previousCount = this.currentCount;
-      } else {
-        this.previousCount = 0;
-      }
-      this.currentCount = 0;
-      this.currentWindowKey = windowKey;
-    }
-    const progressInCurrentWindow = (now % this.windowSizeMs) / this.windowSizeMs;
-    const estimatedRequests = this.previousCount * (1 - progressInCurrentWindow) + this.currentCount;
-    if (estimatedRequests < this.maxRequests) {
-      this.currentCount++;
-      return true;
-    }
-    return false;
-  }
-}`
+        path: "src/v1/ch04-rate-limiter/sliding-window-counter.js"
       }
     ]
   },
@@ -438,58 +290,7 @@ HTTP 状态码 <code>429 Too Many Requests</code> 是其标准响应。本章实
     files: [
       {
         name: "consistent-hash-ring.js",
-        path: "src/v1/ch05-consistent-hash/consistent-hash-ring.js",
-        code: `export class ConsistentHashRing {
-  constructor({ virtualNodesCount = 100 } = {}) {
-    this.virtualNodesCount = virtualNodesCount;
-    this.ring = []; // sorted array of { hash, node }
-    this.physicalNodes = new Set();
-  }
-
-  addNode(node) {
-    if (this.physicalNodes.has(node)) return;
-    this.physicalNodes.add(node);
-    for (let i = 0; i < this.virtualNodesCount; i++) {
-      const vKey = \`\${node}#VN-\${i}\`;
-      const hash = this._hash(vKey);
-      this.ring.push({ hash, node });
-    }
-    this.ring.sort((a, b) => a.hash - b.hash);
-  }
-
-  removeNode(node) {
-    if (!this.physicalNodes.has(node)) return;
-    this.physicalNodes.delete(node);
-    this.ring = this.ring.filter(entry => entry.node !== node);
-  }
-
-  getNode(key) {
-    if (this.ring.length === 0) return null;
-    const hash = this._hash(key);
-    // 二分查找第一个 hash(VN) >= hash(key)
-    let left = 0, right = this.ring.length - 1;
-    let targetIdx = 0;
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      if (this.ring[mid].hash >= hash) {
-        targetIdx = mid;
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-    return this.ring[targetIdx].node;
-  }
-
-  _hash(str) {
-    let hash = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-      hash ^= str.charCodeAt(i);
-      hash = Math.imul(hash, 16777619);
-    }
-    return hash >>> 0; // 保证无符号 32 位整数
-  }
-}`
+        path: "src/v1/ch05-consistent-hash/consistent-hash-ring.js"
       }
     ]
   },
@@ -527,35 +328,23 @@ HTTP 状态码 <code>429 Too Many Requests</code> 是其标准响应。本章实
     files: [
       {
         name: "vector-clock.js",
-        path: "src/v1/ch06-kv-store/vector-clock.js",
-        code: `export class VectorClock {
-  constructor(nodeId, clock = {}) {
-    this.nodeId = nodeId;
-    this.clock = { ...clock };
-    if (!this.clock[nodeId]) this.clock[nodeId] = 0;
-  }
-
-  increment() {
-    this.clock[this.nodeId] = (this.clock[this.nodeId] || 0) + 1;
-    return this;
-  }
-
-  static compare(v1, v2) {
-    let v1Greater = false;
-    let v2Greater = false;
-    const allKeys = new Set([...Object.keys(v1.clock), ...Object.keys(v2.clock)]);
-    for (const key of allKeys) {
-      const c1 = v1.clock[key] || 0;
-      const c2 = v2.clock[key] || 0;
-      if (c1 > c2) v1Greater = true;
-      if (c2 > c1) v2Greater = true;
-    }
-    if (v1Greater && !v2Greater) return "AFTER";
-    if (!v1Greater && v2Greater) return "BEFORE";
-    if (!v1Greater && !v2Greater) return "EQUAL";
-    return "CONCURRENT"; // 并发冲突，需要应用层合并
-  }
-}`
+        path: "src/v1/ch06-kv-store/vector-clock.js"
+      },
+      {
+        name: "merkle-tree.js",
+        path: "src/v1/ch06-kv-store/merkle-tree.js"
+      },
+      {
+        name: "bloom-filter.js",
+        path: "src/v1/ch06-kv-store/bloom-filter.js"
+      },
+      {
+        name: "gossip-protocol.js",
+        path: "src/v1/ch06-kv-store/gossip-protocol.js"
+      },
+      {
+        name: "quorum-consensus.js",
+        path: "src/v1/ch06-kv-store/quorum-consensus.js"
       }
     ]
   },
@@ -593,50 +382,7 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     files: [
       {
         name: "snowflake.js",
-        path: "src/v1/ch07-unique-id/snowflake.js",
-        code: `export class SnowflakeIdGenerator {
-  static EPOCH = 1609459200000n; // 2021-01-01 00:00:00 UTC
-  static WORKER_ID_BITS = 5n;
-  static DATACENTER_ID_BITS = 5n;
-  static SEQUENCE_BITS = 12n;
-
-  static MAX_WORKER_ID = -1n ^ (-1n << SnowflakeIdGenerator.WORKER_ID_BITS);
-  static MAX_DATACENTER_ID = -1n ^ (-1n << SnowflakeIdGenerator.DATACENTER_ID_BITS);
-  static SEQUENCE_MASK = -1n ^ (-1n << SnowflakeIdGenerator.SEQUENCE_BITS);
-
-  constructor({ workerId = 1, datacenterId = 1 } = {}) {
-    this.workerId = BigInt(workerId);
-    this.datacenterId = BigInt(datacenterId);
-    this.sequence = 0n;
-    this.lastTimestamp = -1n;
-  }
-
-  nextId() {
-    let timestamp = BigInt(Date.now());
-    if (timestamp < this.lastTimestamp) {
-      throw new Error(\`Clock moved backwards! Refusing to generate ID for \${this.lastTimestamp - timestamp}ms\`);
-    }
-    if (this.lastTimestamp === timestamp) {
-      this.sequence = (this.sequence + 1n) & SnowflakeIdGenerator.SEQUENCE_MASK;
-      if (this.sequence === 0n) {
-        // 同一毫秒内序列号溢出，自旋等待下一毫秒
-        while (timestamp <= this.lastTimestamp) {
-          timestamp = BigInt(Date.now());
-        }
-      }
-    } else {
-      this.sequence = 0n;
-    }
-    this.lastTimestamp = timestamp;
-
-    const id =
-      ((timestamp - SnowflakeIdGenerator.EPOCH) << 22n) |
-      (this.datacenterId << 17n) |
-      (this.workerId << 12n) |
-      this.sequence;
-    return id.toString();
-  }
-}`
+        path: "src/v1/ch07-unique-id/snowflake.js"
       }
     ]
   },
@@ -678,33 +424,11 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     files: [
       {
         name: "base62.js",
-        path: "src/v1/ch08-url-shortener/base62.js",
-        code: `export class Base62 {
-  static CHARSET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  static BASE = 62n;
-
-  static encode(numericId) {
-    let num = BigInt(numericId);
-    if (num === 0n) return this.CHARSET[0];
-    let result = "";
-    while (num > 0n) {
-      const remainder = Number(num % this.BASE);
-      result = this.CHARSET[remainder] + result;
-      num = num / this.BASE;
-    }
-    return result;
-  }
-
-  static decode(str) {
-    let result = 0n;
-    for (let i = 0; i < str.length; i++) {
-      const charIndex = this.CHARSET.indexOf(str[i]);
-      if (charIndex === -1) throw new Error(\`Invalid base62 char: \${str[i]}\`);
-      result = result * this.BASE + BigInt(charIndex);
-    }
-    return result;
-  }
-}`
+        path: "src/v1/ch08-url-shortener/base62.js"
+      },
+      {
+        name: "short-hash-resolver.js",
+        path: "src/v1/ch08-url-shortener/short-hash-resolver.js"
       }
     ]
   },
@@ -751,48 +475,12 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     Hamming -- "距离 > 3" --> NewPage["录入索引库"]`,
     files: [
       {
+        name: "polite-url-frontier.js",
+        path: "src/v1/ch09-crawler/polite-url-frontier.js"
+      },
+      {
         name: "sim-hash.js",
-        path: "src/v1/ch09-crawler/sim-hash.js",
-        code: `export class SimHash {
-  static hash64(str) {
-    let h1 = 0xdeadbeef, h2 = 0x41c64e6d;
-    for (let i = 0; i < str.length; i++) {
-      const ch = str.charCodeAt(i);
-      h1 = Math.imul(h1 ^ ch, 2654435761);
-      h2 = Math.imul(h2 ^ ch, 1597334677);
-    }
-    const part1 = (h1 >>> 0).toString(2).padStart(32, "0");
-    const part2 = (h2 >>> 0).toString(2).padStart(32, "0");
-    return part1 + part2;
-  }
-
-  static generate(tokens) {
-    const v = new Array(64).fill(0);
-    for (const token of tokens) {
-      const h = this.hash64(token);
-      for (let i = 0; i < 64; i++) {
-        v[i] += h[i] === "1" ? 1 : -1;
-      }
-    }
-    let fingerprint = 0n;
-    for (let i = 0; i < 64; i++) {
-      if (v[i] > 0) {
-        fingerprint |= 1n << BigInt(63 - i);
-      }
-    }
-    return fingerprint;
-  }
-
-  static hammingDistance(fp1, fp2) {
-    let xor = fp1 ^ fp2;
-    let count = 0;
-    while (xor > 0n) {
-      if (xor & 1n) count++;
-      xor >>= 1n;
-    }
-    return count;
-  }
-}`
+        path: "src/v1/ch09-crawler/sim-hash.js"
       }
     ]
   },
@@ -841,40 +529,11 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     files: [
       {
         name: "exponential-backoff.js",
-        path: "src/v1/ch10-notification/exponential-backoff.js",
-        code: `export class ExponentialBackoffRetrier {
-  constructor({ baseIntervalMs = 100, maxIntervalMs = 5000, maxAttempts = 5, jitter = "full" } = {}) {
-    this.baseInterval = baseIntervalMs;
-    this.maxInterval = maxIntervalMs;
-    this.maxAttempts = maxAttempts;
-    this.jitter = jitter;
-  }
-
-  getDelay(attempt) {
-    const rawBackoff = Math.min(this.maxInterval, this.baseInterval * Math.pow(2, attempt));
-    if (this.jitter === "full") {
-      return Math.floor(Math.random() * rawBackoff);
-    } else if (this.jitter === "equal") {
-      const half = Math.floor(rawBackoff / 2);
-      return half + Math.floor(Math.random() * half);
-    }
-    return rawBackoff;
-  }
-
-  async executeWithRetry(fn) {
-    let attempt = 0;
-    while (true) {
-      try {
-        return await fn(attempt);
-      } catch (err) {
-        if (attempt >= this.maxAttempts) throw err;
-        const delay = this.getDelay(attempt);
-        await new Promise(r => setTimeout(r, delay));
-        attempt++;
-      }
-    }
-  }
-}`
+        path: "src/v1/ch10-notification/exponential-backoff.js"
+      },
+      {
+        name: "idempotency-deduplicator.js",
+        path: "src/v1/ch10-notification/idempotency-deduplicator.js"
       }
     ]
   },
@@ -914,41 +573,12 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     Merge --> FeedRes["按时间戳降序呈现给用户"]`,
     files: [
       {
+        name: "hybrid-fanout.js",
+        path: "src/v1/ch11-news-feed/hybrid-fanout.js"
+      },
+      {
         name: "timeline-merger.js",
-        path: "src/v1/ch11-news-feed/timeline-merger.js",
-        code: `export class TimelineMerger {
-  /**
-   * K-Way Merge of sorted timelines (newest first)
-   * @param {Array<Array<{id: string, timestamp: number}>>} timelines
-   * @param {number} limit
-   */
-  static merge(timelines, limit = 20) {
-    const indices = new Array(timelines.length).fill(0);
-    const result = [];
-
-    while (result.length < limit) {
-      let maxTime = -1;
-      let chosenStream = -1;
-
-      for (let i = 0; i < timelines.length; i++) {
-        const stream = timelines[i];
-        const idx = indices[i];
-        if (idx < stream.length) {
-          if (stream[idx].timestamp > maxTime) {
-            maxTime = stream[idx].timestamp;
-            chosenStream = i;
-          }
-        }
-      }
-
-      if (chosenStream === -1) break; // 所有流耗尽
-      result.push(timelines[chosenStream][indices[chosenStream]]);
-      indices[chosenStream]++;
-    }
-
-    return result;
-  }
-}`
+        path: "src/v1/ch11-news-feed/timeline-merger.js"
       }
     ]
   },
@@ -995,31 +625,11 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     files: [
       {
         name: "message-sequencer.js",
-        path: "src/v1/ch12-chat/message-sequencer.js",
-        code: `export class MessageSequencer {
-  constructor() {
-    this.conversationSequences = new Map(); // conversationId -> lastSeqId
-  }
-
-  nextSequence(conversationId) {
-    const current = this.conversationSequences.get(conversationId) || 0;
-    const next = current + 1;
-    this.conversationSequences.set(conversationId, next);
-    return next;
-  }
-
-  static detectGaps(receivedSeqList, expectedStartSeq = 1) {
-    const gaps = [];
-    const set = new Set(receivedSeqList);
-    const max = Math.max(...receivedSeqList, expectedStartSeq);
-    for (let i = expectedStartSeq; i <= max; i++) {
-      if (!set.has(i)) {
-        gaps.push(i);
-      }
-    }
-    return gaps;
-  }
-}`
+        path: "src/v1/ch12-chat/message-sequencer.js"
+      },
+      {
+        name: "presence-manager.js",
+        path: "src/v1/ch12-chat/presence-manager.js"
       }
     ]
   },
@@ -1059,53 +669,7 @@ Twitter Snowflake 巧妙利用 64 位无符号整数实现了分布式无锁自�
     files: [
       {
         name: "topk-trie.js",
-        path: "src/v1/ch13-autocomplete/topk-trie.js",
-        code: `class TrieNode {
-  constructor() {
-    this.children = new Map();
-    this.topK = []; // 缓存当前前缀下的 Top-K 词条 [{word, frequency}]
-  }
-}
-
-export class TopKTrie {
-  constructor(k = 5) {
-    this.k = k;
-    this.root = new TrieNode();
-  }
-
-  insert(word, frequency) {
-    let curr = this.root;
-    for (const char of word.toLowerCase()) {
-      if (!curr.children.has(char)) {
-        curr.children.set(char, new TrieNode());
-      }
-      curr = curr.children.get(char);
-      this._updateTopK(curr, word, frequency);
-    }
-  }
-
-  search(prefix) {
-    let curr = this.root;
-    for (const char of prefix.toLowerCase()) {
-      if (!curr.children.has(char)) return [];
-      curr = curr.children.get(char);
-    }
-    return curr.topK.map(item => item.word); // O(p) 直接返回
-  }
-
-  _updateTopK(node, word, frequency) {
-    const existingIdx = node.topK.findIndex(item => item.word === word);
-    if (existingIdx !== -1) {
-      node.topK[existingIdx].frequency = frequency;
-    } else {
-      node.topK.push({ word, frequency });
-    }
-    node.topK.sort((a, b) => b.frequency - a.frequency);
-    if (node.topK.length > this.k) {
-      node.topK.pop();
-    }
-  }
-}`
+        path: "src/v1/ch13-autocomplete/topk-trie.js"
       }
     ]
   },
@@ -1144,56 +708,7 @@ export class TopKTrie {
     files: [
       {
         name: "dag-task-scheduler.js",
-        path: "src/v1/ch14-youtube/dag-task-scheduler.js",
-        code: `export class DagTaskScheduler {
-  constructor() {
-    this.tasks = new Map(); // id -> { id, fn, dependencies: Set, dependents: Set }
-  }
-
-  addTask(id, fn, dependencies = []) {
-    this.tasks.set(id, {
-      id,
-      fn,
-      dependencies: new Set(dependencies),
-      dependents: new Set()
-    });
-  }
-
-  buildGraph() {
-    for (const [taskId, task] of this.tasks) {
-      for (const depId of task.dependencies) {
-        if (!this.tasks.has(depId)) throw new Error(\`Missing dependency: \${depId}\`);
-        this.tasks.get(depId).dependents.add(taskId);
-      }
-    }
-  }
-
-  getTopologicalOrder() {
-    this.buildGraph();
-    const inDegree = new Map();
-    for (const [id, task] of this.tasks) {
-      inDegree.set(id, task.dependencies.size);
-    }
-    const queue = [];
-    for (const [id, deg] of inDegree) {
-      if (deg === 0) queue.push(id);
-    }
-    const order = [];
-    while (queue.length > 0) {
-      const curr = queue.shift();
-      order.push(curr);
-      for (const depId of this.tasks.get(curr).dependents) {
-        const nextDeg = inDegree.get(depId) - 1;
-        inDegree.set(depId, nextDeg);
-        if (nextDeg === 0) queue.push(depId);
-      }
-    }
-    if (order.length !== this.tasks.size) {
-      throw new Error("Cycle detected in DAG task pipeline!");
-    }
-    return order;
-  }
-}`
+        path: "src/v1/ch14-youtube/dag-task-scheduler.js"
       }
     ]
   },
@@ -1230,45 +745,7 @@ export class TopKTrie {
     files: [
       {
         name: "delta-sync.js",
-        path: "src/v1/ch15-google-drive/delta-sync.js",
-        code: `export class DeltaSyncEngine {
-  constructor({ chunkSize = 4 } = {}) {
-    this.chunkSize = chunkSize;
-    this.globalStorage = new Map(); // hash -> chunkContent (全局去重池)
-  }
-
-  chunkContent(content) {
-    const chunks = [];
-    for (let i = 0; i < content.length; i += this.chunkSize) {
-      const slice = content.slice(i, i + this.chunkSize);
-      chunks.push({
-        index: chunks.length,
-        hash: this._simpleHash(slice),
-        data: slice
-      });
-    }
-    return chunks;
-  }
-
-  computeDelta(oldManifest, newChunks) {
-    const oldHashMap = new Set(oldManifest.map(c => c.hash));
-    const toUpload = [];
-    for (const chunk of newChunks) {
-      if (!oldHashMap.has(chunk.hash) && !this.globalStorage.has(chunk.hash)) {
-        toUpload.push(chunk);
-      }
-    }
-    return toUpload; // 仅返回发生变化的增量块
-  }
-
-  _simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
-    }
-    return "h_" + (hash >>> 0).toString(16);
-  }
-}`
+        path: "src/v1/ch15-google-drive/delta-sync.js"
       }
     ]
   },
@@ -1314,48 +791,11 @@ export class TopKTrie {
     files: [
       {
         name: "geohash.js",
-        path: "src/v2/ch01-proximity/geohash.js",
-        code: `export class Geohash {
-  static BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
-
-  static encode(lat, lon, precision = 6) {
-    let latMin = -90.0, latMax = 90.0;
-    let lonMin = -180.0, lonMax = 180.0;
-    let hash = "";
-    let isEven = true;
-    let bit = 0;
-    let ch = 0;
-
-    while (hash.length < precision) {
-      if (isEven) {
-        const mid = (lonMin + lonMax) / 2;
-        if (lon > mid) {
-          ch |= (1 << (4 - bit));
-          lonMin = mid;
-        } else {
-          lonMax = mid;
-        }
-      } else {
-        const mid = (latMin + latMax) / 2;
-        if (lat > mid) {
-          ch |= (1 << (4 - bit));
-          latMin = mid;
-        } else {
-          latMax = mid;
-        }
-      }
-      isEven = !isEven;
-      if (bit < 4) {
-        bit++;
-      } else {
-        hash += this.BASE32[ch];
-        bit = 0;
-        ch = 0;
-      }
-    }
-    return hash;
-  }
-}`
+        path: "src/v2/ch01-proximity/geohash.js"
+      },
+      {
+        name: "quad-tree.js",
+        path: "src/v2/ch01-proximity/quad-tree.js"
       }
     ]
   },
@@ -1401,24 +841,11 @@ export class TopKTrie {
     files: [
       {
         name: "haversine.js",
-        path: "src/v2/ch02-nearby-friends/haversine.js",
-        code: `export class Haversine {
-  static EARTH_RADIUS_METERS = 6371000;
-
-  static distance(lat1, lon1, lat2, lon2) {
-    const toRad = deg => (deg * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return this.EARTH_RADIUS_METERS * c;
-  }
-}`
+        path: "src/v2/ch02-nearby-friends/haversine.js"
+      },
+      {
+        name: "grid-pubsub.js",
+        path: "src/v2/ch02-nearby-friends/grid-pubsub.js"
       }
     ]
   },
@@ -1460,54 +887,11 @@ export class TopKTrie {
     files: [
       {
         name: "astar-pathfinding.js",
-        path: "src/v2/ch03-google-maps/astar-pathfinding.js",
-        code: `export class AStarPathfinding {
-  static findPath(graph, startNode, targetNode, heuristicFn) {
-    const openSet = new Set([startNode]);
-    const cameFrom = new Map();
-    const gScore = new Map([[startNode, 0]]);
-    const fScore = new Map([[startNode, heuristicFn(startNode, targetNode)]]);
-
-    while (openSet.size > 0) {
-      let current = null;
-      let lowestF = Infinity;
-      for (const node of openSet) {
-        const f = fScore.get(node) ?? Infinity;
-        if (f < lowestF) {
-          lowestF = f;
-          current = node;
-        }
-      }
-
-      if (current === targetNode) {
-        return this._reconstructPath(cameFrom, current);
-      }
-
-      openSet.delete(current);
-      const currentG = gScore.get(current) ?? Infinity;
-
-      for (const edge of graph[current] || []) {
-        const tentativeG = currentG + edge.cost;
-        if (tentativeG < (gScore.get(edge.to) ?? Infinity)) {
-          cameFrom.set(edge.to, current);
-          gScore.set(edge.to, tentativeG);
-          fScore.set(edge.to, tentativeG + heuristicFn(edge.to, targetNode));
-          openSet.add(edge.to);
-        }
-      }
-    }
-    return null; // 无路径连通
-  }
-
-  static _reconstructPath(cameFrom, current) {
-    const path = [current];
-    while (cameFrom.has(current)) {
-      current = cameFrom.get(current);
-      path.unshift(current);
-    }
-    return path;
-  }
-}`
+        path: "src/v2/ch03-google-maps/astar-pathfinding.js"
+      },
+      {
+        name: "slippy-map-tile.js",
+        path: "src/v2/ch03-google-maps/slippy-map-tile.js"
       }
     ]
   },
@@ -1548,45 +932,11 @@ export class TopKTrie {
     files: [
       {
         name: "commit-log.js",
-        path: "src/v2/ch04-message-queue/commit-log.js",
-        code: `export class CommitLogSegment {
-  constructor({ maxSegmentSize = 1000, indexInterval = 2 } = {}) {
-    this.maxSegmentSize = maxSegmentSize;
-    this.indexInterval = indexInterval;
-    this.entries = []; // 顺序数据
-    this.sparseIndex = []; // { offset, position }
-  }
-
-  append(message) {
-    const offset = this.entries.length;
-    const position = this.entries.length;
-    if (offset % this.indexInterval === 0) {
-      this.sparseIndex.push({ offset, position });
-    }
-    this.entries.push({ offset, message, timestamp: Date.now() });
-    return offset;
-  }
-
-  read(offset) {
-    if (this.sparseIndex.length === 0) return null;
-    // 稀疏索引二分查找找到 <= offset 的最大条目
-    let left = 0, right = this.sparseIndex.length - 1;
-    let startPos = 0;
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      if (this.sparseIndex[mid].offset <= offset) {
-        startPos = this.sparseIndex[mid].position;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
-    }
-    for (let i = startPos; i < this.entries.length; i++) {
-      if (this.entries[i].offset === offset) return this.entries[i];
-    }
-    return null;
-  }
-}`
+        path: "src/v2/ch04-message-queue/commit-log.js"
+      },
+      {
+        name: "partition-assignor.js",
+        path: "src/v2/ch04-message-queue/partition-assignor.js"
       }
     ]
   },
@@ -1629,37 +979,12 @@ export class TopKTrie {
     FIRING --> OK: 持续低于恢复阈值并持续超过静默期`,
     files: [
       {
+        name: "time-series-downsampler.js",
+        path: "src/v2/ch05-metrics/time-series-downsampler.js"
+      },
+      {
         name: "alert-window-evaluator.js",
-        path: "src/v2/ch05-metrics/alert-window-evaluator.js",
-        code: `export class AlertWindowEvaluator {
-  constructor({ threshold = 90, consecutiveViolationsRequired = 3 }) {
-    this.threshold = threshold;
-    this.requiredViolations = consecutiveViolationsRequired;
-    this.history = []; // { value, timestamp }
-    this.state = "OK"; // OK, PENDING, FIRING
-  }
-
-  evaluate(val, timestamp = Date.now()) {
-    this.history.push({ value: val, timestamp });
-    const isViolated = val >= this.threshold;
-
-    if (this.state === "OK") {
-      if (isViolated) this.state = "PENDING";
-    } else if (this.state === "PENDING") {
-      if (!isViolated) {
-        this.state = "OK";
-      } else {
-        const recentViolations = this.history.slice(-this.requiredViolations);
-        if (recentViolations.length >= this.requiredViolations && recentViolations.every(v => v.value >= this.threshold)) {
-          this.state = "FIRING"; // 满足连续违规，正式触发告警通知！
-        }
-      }
-    } else if (this.state === "FIRING") {
-      if (!isViolated) this.state = "OK"; // 恢复
-    }
-    return { state: this.state, value: val };
-  }
-}`
+        path: "src/v2/ch05-metrics/alert-window-evaluator.js"
       }
     ]
   },
@@ -1694,37 +1019,7 @@ export class TopKTrie {
     files: [
       {
         name: "watermark-stream-window.js",
-        path: "src/v2/ch06-ad-aggregation/watermark-stream-window.js",
-        code: `export class WatermarkStreamWindow {
-  constructor({ windowSizeMs = 10000, maxOutOfOrderMs = 2000 }) {
-    this.windowSizeMs = windowSizeMs;
-    this.maxOutOfOrderMs = maxOutOfOrderMs;
-    this.maxEventTime = 0;
-    this.windows = new Map(); // windowStart -> { count, revenue, end }
-    this.lateEvents = [];
-  }
-
-  processEvent({ eventTime, adId, bidPrice }) {
-    this.maxEventTime = Math.max(this.maxEventTime, eventTime);
-    const watermark = this.maxEventTime - this.maxOutOfOrderMs;
-
-    const windowStart = Math.floor(eventTime / this.windowSizeMs) * this.windowSizeMs;
-    const windowEnd = windowStart + this.windowSizeMs;
-
-    // 检查该窗口是否已经因水位线越过而关闭
-    if (windowEnd <= watermark) {
-      this.lateEvents.push({ eventTime, adId, bidPrice, reason: "LATE_EVENT_AFTER_WATERMARK" });
-      return;
-    }
-
-    if (!this.windows.has(windowStart)) {
-      this.windows.set(windowStart, { count: 0, revenue: 0, end: windowEnd });
-    }
-    const win = this.windows.get(windowStart);
-    win.count++;
-    win.revenue += bidPrice;
-  }
-}`
+        path: "src/v2/ch06-ad-aggregation/watermark-stream-window.js"
       }
     ]
   },
@@ -1769,49 +1064,7 @@ export class TopKTrie {
     files: [
       {
         name: "inventory-reservation.js",
-        path: "src/v2/ch07-hotel-reserve/inventory-reservation.js",
-        code: `export class InventoryReservationManager {
-  constructor() {
-    this.inventory = new Map(); // dateStr -> { total, reserved, version }
-    this.holds = new Map(); // reservationId -> { dates, expiresAt, status }
-  }
-
-  setInventory(dateStr, total) {
-    this.inventory.set(dateStr, { total, reserved: 0, version: 1 });
-  }
-
-  reserveHold(reservationId, dates, ttlMs = 15 * 60 * 1000) {
-    // 1. 验证全部日期是否可用
-    for (const d of dates) {
-      const inv = this.inventory.get(d);
-      if (!inv || (inv.total - inv.reserved) <= 0) {
-        return { success: false, reason: \`Date \${d} is fully booked!\` };
-      }
-    }
-    // 2. 原子扣减
-    for (const d of dates) {
-      const inv = this.inventory.get(d);
-      inv.reserved++;
-      inv.version++;
-    }
-    this.holds.set(reservationId, {
-      dates,
-      expiresAt: Date.now() + ttlMs,
-      status: "HOLD"
-    });
-    return { success: true, reservationId };
-  }
-
-  releaseExpiredHold(reservationId) {
-    const hold = this.holds.get(reservationId);
-    if (!hold || hold.status !== "HOLD") return;
-    for (const d of hold.dates) {
-      const inv = this.inventory.get(d);
-      if (inv) inv.reserved = Math.max(0, inv.reserved - 1);
-    }
-    hold.status = "EXPIRED";
-  }
-}`
+        path: "src/v2/ch07-hotel-reserve/inventory-reservation.js"
       }
     ]
   },
@@ -1857,51 +1110,7 @@ export class TopKTrie {
     files: [
       {
         name: "inverted-index.js",
-        path: "src/v2/ch08-email-search/inverted-index.js",
-        code: `export class InvertedIndex {
-  constructor() {
-    this.index = new Map(); // term -> sorted array of docIds
-    this.documents = new Map(); // docId -> content
-  }
-
-  addDocument(docId, text) {
-    this.documents.set(docId, text);
-    const tokens = this._tokenize(text);
-    for (const token of tokens) {
-      if (!this.index.has(token)) {
-        this.index.set(token, []);
-      }
-      const list = this.index.get(token);
-      if (list[list.length - 1] !== docId) {
-        list.push(docId); // 保证有序
-      }
-    }
-  }
-
-  searchAnd(term1, term2) {
-    const list1 = this.index.get(term1.toLowerCase()) || [];
-    const list2 = this.index.get(term2.toLowerCase()) || [];
-    // 双指针求交 O(M + N)
-    const result = [];
-    let p1 = 0, p2 = 0;
-    while (p1 < list1.length && p2 < list2.length) {
-      if (list1[p1] === list2[p2]) {
-        result.push(list1[p1]);
-        p1++;
-        p2++;
-      } else if (list1[p1] < list2[p2]) {
-        p1++;
-      } else {
-        p2++;
-      }
-    }
-    return result;
-  }
-
-  _tokenize(text) {
-    return text.toLowerCase().match(/\\b[a-z0-9]+\\b/g) || [];
-  }
-}`
+        path: "src/v2/ch08-email-search/inverted-index.js"
       }
     ]
   },
@@ -1941,31 +1150,7 @@ export class TopKTrie {
     files: [
       {
         name: "erasure-coding.js",
-        path: "src/v2/ch09-s3-storage/erasure-coding.js",
-        code: `export class ErasureCodingSimulator {
-  constructor({ dataBlocks = 4, parityBlocks = 2 }) {
-    this.n = dataBlocks;
-    this.m = parityBlocks;
-  }
-
-  encode(dataArray) {
-    if (dataArray.length !== this.n) throw new Error(\`Need exactly \${this.n} data blocks\`);
-    const encoded = [...dataArray];
-    // 仿真简单的异或与线性校验块生成
-    let p1 = 0, p2 = 0;
-    for (let i = 0; i < this.n; i++) {
-      p1 ^= dataArray[i];
-      p2 ^= (dataArray[i] * (i + 1));
-    }
-    encoded.push(p1, p2);
-    return encoded; // 长度为 n + m
-  }
-
-  canReconstruct(availableBlocksCount) {
-    // 核心定理：只要存活块数量 >= N，即可 100% 重建
-    return availableBlocksCount >= this.n;
-  }
-}`
+        path: "src/v2/ch09-s3-storage/erasure-coding.js"
       }
     ]
   },
@@ -2010,79 +1195,7 @@ export class TopKTrie {
     files: [
       {
         name: "skip-list.js",
-        path: "src/v2/ch10-leaderboard/skip-list.js",
-        code: `class SkipNode {
-  constructor(member, score, level) {
-    this.member = member;
-    this.score = score;
-    this.forward = new Array(level).fill(null);
-    this.span = new Array(level).fill(0);
-  }
-}
-
-export class SkipListLeaderboard {
-  constructor(maxLevel = 16) {
-    this.maxLevel = maxLevel;
-    this.level = 1;
-    this.head = new SkipNode(null, -Infinity, maxLevel);
-    this.dict = new Map(); // member -> score
-  }
-
-  insert(member, score) {
-    const update = new Array(this.maxLevel);
-    const rank = new Array(this.maxLevel).fill(0);
-    let curr = this.head;
-
-    for (let i = this.level - 1; i >= 0; i--) {
-      rank[i] = i === this.level - 1 ? 0 : rank[i + 1];
-      while (curr.forward[i] && (curr.forward[i].score < score || (curr.forward[i].score === score && curr.forward[i].member < member))) {
-        rank[i] += curr.span[i];
-        curr = curr.forward[i];
-      }
-      update[i] = curr;
-    }
-
-    const newLevel = this._randomLevel();
-    if (newLevel > this.level) {
-      for (let i = this.level; i < newLevel; i++) {
-        rank[i] = 0;
-        update[i] = this.head;
-        update[i].span[i] = this.dict.size;
-      }
-      this.level = newLevel;
-    }
-
-    const newNode = new SkipNode(member, score, newLevel);
-    for (let i = 0; i < newLevel; i++) {
-      newNode.forward[i] = update[i].forward[i];
-      update[i].forward[i] = newNode;
-      newNode.span[i] = update[i].span[i] - (rank[0] - rank[i]);
-      update[i].span[i] = (rank[0] - rank[i]) + 1;
-    }
-    this.dict.set(member, score);
-  }
-
-  getRank(member) {
-    const targetScore = this.dict.get(member);
-    if (targetScore === undefined) return null;
-    let rank = 0;
-    let curr = this.head;
-    for (let i = this.level - 1; i >= 0; i--) {
-      while (curr.forward[i] && (curr.forward[i].score < targetScore || (curr.forward[i].score === targetScore && curr.forward[i].member <= member))) {
-        rank += curr.span[i];
-        curr = curr.forward[i];
-      }
-      if (curr.member === member) return rank;
-    }
-    return rank;
-  }
-
-  _randomLevel() {
-    let lvl = 1;
-    while (Math.random() < 0.25 && lvl < this.maxLevel) lvl++;
-    return lvl;
-  }
-}`
+        path: "src/v2/ch10-leaderboard/skip-list.js"
       }
     ]
   },
@@ -2130,42 +1243,11 @@ export class SkipListLeaderboard {
     files: [
       {
         name: "double-entry-ledger.js",
-        path: "src/v2/ch11-payment/double-entry-ledger.js",
-        code: `export class DoubleEntryLedger {
-  constructor() {
-    this.accounts = new Map(); // id -> { name, type, balance }
-    this.journalEntries = [];
-  }
-
-  recordTransaction({ id, entries, timestamp = Date.now() }) {
-    let totalDebit = 0;
-    let totalCredit = 0;
-
-    for (const e of entries) {
-      if (e.direction === "DEBIT") totalDebit += e.amount;
-      else if (e.direction === "CREDIT") totalCredit += e.amount;
-      else throw new Error("Invalid direction");
-    }
-
-    // 核心不变量：借贷绝对平衡
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
-      throw new Error(\`Double-entry imbalance! Debit: \${totalDebit}, Credit: \${totalCredit}\`);
-    }
-
-    for (const e of entries) {
-      const acc = this.accounts.get(e.accountId);
-      if (!acc) throw new Error(\`Account not found: \${e.accountId}\`);
-      // 资产/费用类科目借增贷减；负债/权益/收入类科目贷增借减
-      if (acc.type === "ASSET") {
-        acc.balance += (e.direction === "DEBIT" ? e.amount : -e.amount);
-      } else if (acc.type === "LIABILITY") {
-        acc.balance += (e.direction === "CREDIT" ? e.amount : -e.amount);
-      }
-    }
-
-    this.journalEntries.push({ id, entries, timestamp });
-  }
-}`
+        path: "src/v2/ch11-payment/double-entry-ledger.js"
+      },
+      {
+        name: "payment-reconciliation.js",
+        path: "src/v2/ch11-payment/payment-reconciliation.js"
       }
     ]
   },
@@ -2215,38 +1297,11 @@ export class SkipListLeaderboard {
     files: [
       {
         name: "saga-orchestrator.js",
-        path: "src/v2/ch12-wallet/saga-orchestrator.js",
-        code: `export class SagaOrchestrator {
-  constructor() {
-    this.steps = []; // { name, executeFn, compensateFn }
-  }
-
-  addStep(name, executeFn, compensateFn) {
-    this.steps.push({ name, executeFn, compensateFn });
-    return this;
-  }
-
-  async execute() {
-    const executedSteps = [];
-    for (const step of this.steps) {
-      try {
-        await step.executeFn();
-        executedSteps.push(step);
-      } catch (err) {
-        // 某一步失败，逆向触发所有已成功步骤的补偿操作
-        for (let i = executedSteps.length - 1; i >= 0; i--) {
-          try {
-            await executedSteps[i].compensateFn();
-          } catch (compensateErr) {
-            console.error(\`Fatal compensation failure at \${executedSteps[i].name}\`, compensateErr);
-          }
-        }
-        return { success: false, failedAt: step.name, error: err.message };
-      }
-    }
-    return { success: true };
-  }
-}`
+        path: "src/v2/ch12-wallet/saga-orchestrator.js"
+      },
+      {
+        name: "two-phase-commit.js",
+        path: "src/v2/ch12-wallet/two-phase-commit.js"
       }
     ]
   },
@@ -2291,90 +1346,7 @@ export class SkipListLeaderboard {
     files: [
       {
         name: "matching-engine.js",
-        path: "src/v2/ch13-exchange/matching-engine.js",
-        code: `export class MatchingEngine {
-  constructor() {
-    this.bids = []; // 买单：价格降序 [{ price, orders: [] }]
-    this.asks = []; // 卖单：价格升序 [{ price, orders: [] }]
-  }
-
-  submitLimitOrder(order) {
-    const trades = [];
-    if (order.side === "BUY") {
-      this._matchBuy(order, trades);
-    } else {
-      this._matchSell(order, trades);
-    }
-    return trades;
-  }
-
-  _matchBuy(order, trades) {
-    while (this.asks.length > 0 && order.quantity > 0) {
-      const bestAskLevel = this.asks[0];
-      if (order.price < bestAskLevel.price) break; // 无法跨越价差
-
-      const restingOrder = bestAskLevel.orders[0];
-      const matchQty = Math.min(order.quantity, restingOrder.quantity);
-
-      trades.push({
-        makerOrderId: restingOrder.id,
-        takerOrderId: order.id,
-        price: restingOrder.price, // 被挂单方价格优先成交
-        quantity: matchQty
-      });
-
-      order.quantity -= matchQty;
-      restingOrder.quantity -= matchQty;
-
-      if (restingOrder.quantity === 0) {
-        bestAskLevel.orders.shift();
-        if (bestAskLevel.orders.length === 0) this.asks.shift();
-      }
-    }
-    // 未完全成交部分挂单
-    if (order.quantity > 0) {
-      this._addRestingOrder(this.bids, order, (a, b) => b - a); // 降序
-    }
-  }
-
-  _matchSell(order, trades) {
-    while (this.bids.length > 0 && order.quantity > 0) {
-      const bestBidLevel = this.bids[0];
-      if (order.price > bestBidLevel.price) break;
-
-      const restingOrder = bestBidLevel.orders[0];
-      const matchQty = Math.min(order.quantity, restingOrder.quantity);
-
-      trades.push({
-        makerOrderId: restingOrder.id,
-        takerOrderId: order.id,
-        price: restingOrder.price,
-        quantity: matchQty
-      });
-
-      order.quantity -= matchQty;
-      restingOrder.quantity -= matchQty;
-
-      if (restingOrder.quantity === 0) {
-        bestBidLevel.orders.shift();
-        if (bestBidLevel.orders.length === 0) this.bids.shift();
-      }
-    }
-    if (order.quantity > 0) {
-      this._addRestingOrder(this.asks, order, (a, b) => a - b); // 升序
-    }
-  }
-
-  _addRestingOrder(book, order, compareFn) {
-    let level = book.find(l => l.price === order.price);
-    if (!level) {
-      level = { price: order.price, orders: [] };
-      book.push(level);
-      book.sort((a, b) => compareFn(a.price, b.price));
-    }
-    level.orders.push(order);
-  }
-}`
+        path: "src/v2/ch13-exchange/matching-engine.js"
       }
     ]
   }

@@ -23,17 +23,26 @@ function updateHljsTheme(theme) {
 document.documentElement.setAttribute("data-theme", state.theme);
 updateHljsTheme(state.theme);
 
-// Initialize Mermaid.js
-if (window.mermaid) {
+// Guards async source-file loads against rapid chapter switches: a fetch
+// that resolves after the user moved on must not write into the new
+// chapter's code blocks.
+let renderSeq = 0;
+
+// Initialize (or re-initialize) Mermaid.js for the given theme. Called once
+// at startup and again on every theme toggle, otherwise diagrams keep the
+// theme they were first rendered with.
+function initMermaid(theme) {
+  if (!window.mermaid) return;
   window.mermaid.initialize({
     startOnLoad: false,
-    theme: state.theme === "dark" ? "dark" : "default",
+    theme: theme === "dark" ? "dark" : "default",
     securityLevel: "loose",
     themeVariables: {
       fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif"
     }
   });
 }
+initMermaid(state.theme);
 
 /**
  * Filter chapters based on active volume and search query
@@ -65,7 +74,7 @@ function renderSidebar() {
 
   const filtered = getFilteredChapters();
   if (filtered.length === 0) {
-    listEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">无匹配章节</div>`;
+    listEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px;">无匹配章节</div>`;
     return;
   }
 
@@ -99,6 +108,14 @@ async function selectChapter(id) {
   if (!chapter) return;
 
   state.activeChapterId = id;
+  // Keep the volume tab in sync with the chapter (e.g. after picking a
+  // chapter from cross-volume search results), otherwise the sidebar
+  // keeps showing the other volume and the active chapter vanishes.
+  if (state.currentVol !== chapter.vol) {
+    state.currentVol = chapter.vol;
+    document.getElementById("tabVol1")?.classList.toggle("active", chapter.vol === 1);
+    document.getElementById("tabVol2")?.classList.toggle("active", chapter.vol === 2);
+  }
   window.location.hash = id;
 
   renderSidebar();
@@ -191,17 +208,19 @@ async function renderMainContent(chapter) {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         生产级可读 JavaScript 源码实现 (Source Code)
       </h3>
-      ${chapter.files.map(f => `
+      ${chapter.files.map((f, i) => `
         <div style="margin-bottom: 16px;">
           <div class="code-viewer-header">
             <span class="file-path">${f.path}</span>
-            <button class="copy-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(f.code)}')).then(() => alert('代码已复制到剪贴板！'))">复制源码</button>
+            <button class="copy-btn" data-file-index="${i}">复制源码</button>
           </div>
-          <pre class="code-block"><code class="language-javascript">${escapeHtml(f.code)}</code></pre>
+          <pre class="code-block"><code class="language-javascript" data-file-index="${i}">正在加载源码…</code></pre>
         </div>
       `).join("")}
     </div>
   `;
+
+  const myRender = ++renderSeq;
 
   // Render Mermaid diagrams
   if (window.mermaid && chapter.mermaid) {
@@ -213,31 +232,96 @@ async function renderMainContent(chapter) {
     } catch (e) {
       console.warn("Mermaid render error:", e);
     }
+  } else if (!window.mermaid && chapter.mermaid) {
+    // Mermaid.js loads from a CDN; if it failed (offline / blocked),
+    // don't leave the raw diagram source on screen.
+    const container = document.getElementById("mermaidContainer");
+    if (container) {
+      container.textContent = "时序图未能加载：Mermaid.js 需联网从 CDN 加载，请检查网络后刷新页面。";
+      container.style.cssText = "font-size: 14px; color: var(--text-secondary); padding: 12px; text-align: center;";
+    }
   }
 
-  // Highlight syntax using Highlight.js
-  if (window.hljs) {
-    mainEl.querySelectorAll("pre.code-block code").forEach(block => {
+  // Load the REAL source files from the repo (single source of truth)
+  // instead of the abridged copies data.js used to embed, then highlight.
+  loadSourceFiles(chapter, myRender);
+
+  // Bind copy buttons (no alert(); inline feedback on the button itself)
+  mainEl.querySelectorAll(".copy-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const idx = btn.dataset.fileIndex;
+      const block = mainEl.querySelector(`pre.code-block code[data-file-index="${idx}"]`);
+      if (!block || block.dataset.loaded !== "true") {
+        flashCopyBtn(btn, "加载中…");
+        return;
+      }
+      const text = block.textContent;
       try {
-        window.hljs.highlightElement(block);
-      } catch (err) {
-        console.warn("Highlight error:", err);
+        await navigator.clipboard.writeText(text);
+        flashCopyBtn(btn, "已复制 ✓");
+      } catch (e) {
+        // Fallback for non-secure contexts where clipboard.writeText rejects
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          flashCopyBtn(btn, "已复制 ✓");
+        } catch (e2) {
+          flashCopyBtn(btn, "复制失败，请手动选择");
+        }
+        ta.remove();
       }
     });
-  }
+  });
 
   // Bind playground actions
   initPlaygroundEvents(chapter);
 }
 
+function flashCopyBtn(btn, label) {
+  btn.textContent = label;
+  setTimeout(() => { btn.textContent = "复制源码"; }, 2000);
+}
+
 /**
- * Escape HTML for code display
+ * Fetch each chapter file's real contents and render it into its code
+ * block. Works on all three deployments (Cloudflare Worker, GitHub Pages
+ * and `npm run web`) because they all serve the repo root, including src/.
+ * Falls back to a plain message when opened via file:// or offline.
  */
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+async function loadSourceFiles(chapter, myRender) {
+  const mainEl = document.getElementById("mainContent");
+  if (!mainEl) return;
+  await Promise.all(chapter.files.map(async (f, i) => {
+    let text;
+    try {
+      const res = await fetch("./" + f.path);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      text = await res.text();
+    } catch (e) {
+      text = null;
+    }
+    // The user may have switched chapters while fetching; never write
+    // into another chapter's blocks.
+    if (myRender !== renderSeq) return;
+    const block = mainEl.querySelector(`pre.code-block code[data-file-index="${i}"]`);
+    if (!block) return;
+    if (text === null) {
+      block.textContent = `源码加载失败：请通过 npm run web 启动本地服务器后访问，或直接在 GitHub 仓库查看 ${f.path}。`;
+      return;
+    }
+    block.textContent = text;
+    block.dataset.loaded = "true";
+    if (window.hljs) {
+      try {
+        window.hljs.highlightElement(block);
+      } catch (err) {
+        console.warn("Highlight error:", err);
+      }
+    }
+  }));
 }
 
 /**
@@ -259,7 +343,7 @@ function renderPlaygroundUI(chapter) {
     case "v1-ch04": // Rate Limiter
       return `
         <div class="playground-controls">
-          <label style="font-size:13px; color:var(--text-secondary);">令牌桶 (容量: 5, 每秒补充 2 个)</label>
+          <label style="font-size:14px; color:var(--text-secondary);">令牌桶 (容量: 5, 每秒补充 2 个)</label>
           <button class="playground-btn" id="tbSendBtn">发送请求 (消耗 1 令牌)</button>
           <button class="playground-btn btn-secondary" id="tbBurstBtn">瞬时并发 6 个请求 (Burst)</button>
         </div>
@@ -340,9 +424,9 @@ function renderPlaygroundUI(chapter) {
     default:
       return `
         <div class="playground-controls">
-          <button class="playground-btn" id="defaultRunBtn">运行该章节核心算法控制台测试</button>
+          <button class="playground-btn" id="defaultRunBtn">查看本章要点</button>
         </div>
-        <div class="playground-output" id="defaultOutput">点击上方按钮，在线执行本章节的 JavaScript 算法并打印结构化输出日志。</div>
+        <div class="playground-output" id="defaultOutput">本章暂无在线交互操练台。点击上方按钮查看要点，或在终端运行 npm test 执行全部 58 项单元测试。</div>
       `;
   }
 }
@@ -392,7 +476,7 @@ function initPlaygroundEvents(chapter) {
     document.getElementById("lruPutBtn")?.addEventListener("click", () => {
       const k = document.getElementById("lruKey").value.trim();
       const v = document.getElementById("lruVal").value.trim();
-      if (!k) return;
+      if (!k) { outputEl.textContent = "请输入 Key 后再操作。"; return; }
       cache.put(k, v);
       outputEl.textContent = `[PUT] key="${k}", val="${v}" 写入成功！\n` +
         `当前缓存热度顺序 (Head [MRU] -> Tail [LRU]):\n` +
@@ -402,6 +486,7 @@ function initPlaygroundEvents(chapter) {
 
     document.getElementById("lruGetBtn")?.addEventListener("click", () => {
       const k = document.getElementById("lruKey").value.trim();
+      if (!k) { outputEl.textContent = "请输入 Key 后再操作。"; return; }
       const v = cache.get(k);
       outputEl.textContent = `[GET] key="${k}" -> 结果: ${v !== undefined ? `"${v}" (已移至 MRU 表头)` : "NULL (未命中)"}\n` +
         `当前缓存热度顺序 (Head [MRU] -> Tail [LRU]):\n` +
@@ -452,30 +537,97 @@ function initPlaygroundEvents(chapter) {
   }
 
   // 3. Consistent Hash Ring
+  // A real mini ring mirroring ConsistentHashRing semantics: 32-bit hash,
+  // 100 virtual nodes per physical node, sorted ring, binary-search
+  // clockwise successor with wraparound. (The old demo used hash % N,
+  // i.e. plain modulo sharding — the very problem consistent hashing
+  // solves — while claiming ~25% migration; measured remap was ~75%.)
+  // FNV-1a stands in for MD5 here because node:crypto isn't available
+  // in the browser.
   else if (chapter.id === "v1-ch05") {
-    const nodes = ["Node-1 (US-East)", "Node-2 (EU-West)", "Node-3 (AP-South)"];
+    const REPLICAS = 100;
+    const ring = []; // sorted vnode hashes
+    const vnodeOwner = new Map(); // vnode hash -> physical node
+    const nodes = [];
+    // FNV-1a plus a MurmurHash3-style finalizer. Plain FNV-1a barely
+    // avalanches short strings with shared prefixes ("key:0".."key:199"
+    // land in ~20 tight clusters), so the ring looked uniform but a
+    // measured migration came out at 1% instead of ~25%. The finalizer
+    // spreads the low-bit structure across all 32 bits, like MD5 does
+    // in the real implementation.
+    function fnv1a(str) {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      h ^= h >>> 16;
+      h = Math.imul(h, 0x85ebca6b);
+      h ^= h >>> 13;
+      h = Math.imul(h, 0xc2b2ae35);
+      h ^= h >>> 16;
+      return h >>> 0;
+    }
+    function insertSorted(v) {
+      let lo = 0, hi = ring.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (ring[mid] < v) lo = mid + 1;
+        else hi = mid;
+      }
+      ring.splice(lo, 0, v);
+    }
+    function addNode(node) {
+      if (nodes.includes(node)) return false;
+      nodes.push(node);
+      for (let i = 0; i < REPLICAS; i++) {
+        const hv = fnv1a(`${node}#VN${i}`);
+        vnodeOwner.set(hv, node);
+        insertSorted(hv);
+      }
+      return true;
+    }
+    ["Node-1 (US-East)", "Node-2 (EU-West)", "Node-3 (AP-South)"].forEach(addNode);
+    function getNode(key) {
+      if (ring.length === 0) return null;
+      const hv = fnv1a(key);
+      let target = 0;
+      if (hv > ring[ring.length - 1]) {
+        target = 0; // past the ring tail: wrap around to the head
+      } else {
+        let lo = 0, hi = ring.length - 1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (ring[mid] >= hv) { target = mid; hi = mid - 1; }
+          else lo = mid + 1;
+        }
+      }
+      return { node: vnodeOwner.get(ring[target]), hash: hv, vnodeHash: ring[target] };
+    }
     document.getElementById("hashRouteBtn")?.addEventListener("click", () => {
       const key = document.getElementById("hashKeyInput").value.trim() || "test-key";
-      let hash = 0;
-      for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) & 0xffffffff;
-      const target = nodes[Math.abs(hash) % nodes.length];
-      outputEl.textContent = `Key: "${key}"\n32-bit Hash: ${Math.abs(hash)}\n顺时针命中第一台虚拟节点所属物理机 -> [${target}]`;
+      const r = getNode(key);
+      outputEl.textContent = `Key: "${key}"\n32-bit FNV-1a Hash: ${r.hash}\n顺时针命中虚拟节点 ${r.vnodeHash}，所属物理机 -> [${r.node}]\n（环上共 ${ring.length} 个虚拟节点，每节点 ${REPLICAS} 个）`;
     });
 
     document.getElementById("hashAddNodeBtn")?.addEventListener("click", () => {
-      if (!nodes.includes("Node-4 (SA-East)")) {
-        nodes.push("Node-4 (SA-East)");
-        outputEl.textContent = `已动态向环中扩容 [Node-4 (SA-East)] 及 100 个虚拟节点！\n仅迁移约 25% (1/N) 数据，全环其余 75% 路由完全稳定。`;
-      } else {
+      // Measure the real migration over 200 sample keys before adding.
+      const sample = Array.from({ length: 200 }, (_, i) => `key:${i}`);
+      const before = sample.map(k => getNode(k).node);
+      if (!addNode("Node-4 (SA-East)")) {
         outputEl.textContent = `Node-4 已经存在于哈希环上。当前节点数: ${nodes.length}`;
+        return;
       }
+      let moved = 0;
+      sample.forEach((k, i) => { if (getNode(k).node !== before[i]) moved++; });
+      outputEl.textContent = `已动态向环中扩容 [Node-4 (SA-East)] 及 ${REPLICAS} 个虚拟节点！\n实测迁移：200 个采样 Key 中 ${moved} 个换了节点（约 ${Math.round(moved / 2)}% ≈ 1/${nodes.length}），其余路由完全稳定。\n这正是一致性哈希相对取模分片的优势：取模分片扩容时约 75% 的 Key 都会换节点。`;
     });
   }
 
   // 4. Snowflake ID
   else if (chapter.id === "v1-ch07") {
     let seq = 0n;
-    const epoch = 1609459200000n; // 2021-01-01
+    const epoch = 1577836800000n; // 2020-01-01, same default as SnowflakeIdGenerator
     function generateId() {
       const ts = BigInt(Date.now());
       seq = (seq + 1n) & 4095n;
@@ -485,7 +637,7 @@ function initPlaygroundEvents(chapter) {
 
     document.getElementById("snowflakeGenBtn")?.addEventListener("click", () => {
       const res = generateId();
-      outputEl.textContent = `生成分布式 64-bit Snowflake ID:\n${res.id}\n\n[二进制解析解码]:\n• 41-bit 相对毫秒戳: ${res.ts} ms (从自定义纪元)\n• 5-bit Datacenter ID: 1\n• 5-bit Worker ID: 1\n• 12-bit 自增序列号: ${res.seq} / 4095`;
+      outputEl.textContent = `生成分布式 64-bit Snowflake ID:\n${res.id}\n\n[二进制解析解码]:\n• 41-bit 相对毫秒戳: ${res.ts} ms (从自定义纪元 2020-01-01)\n• 5-bit Datacenter ID: 1\n• 5-bit Worker ID: 1\n• 12-bit 自增序列号: ${res.seq} / 4095`;
     });
 
     document.getElementById("snowflakeBatchBtn")?.addEventListener("click", () => {
@@ -517,7 +669,13 @@ function initPlaygroundEvents(chapter) {
     }
 
     document.getElementById("base62EncodeBtn")?.addEventListener("click", () => {
-      const num = document.getElementById("base62NumInput").value;
+      const num = document.getElementById("base62NumInput").value.trim();
+      // BigInt("") is 0n (silent wrong answer) and BigInt("12.5") throws;
+      // validate first so neither reaches the encoder.
+      if (!/^\d+$/.test(num)) {
+        outputEl.textContent = "请输入非负整数 ID（如 2009215674938）。";
+        return;
+      }
       const shortStr = encode62(num);
       document.getElementById("base62StrInput").value = shortStr;
       outputEl.textContent = `[Base62 编码结果]:\n自增整型 ID: ${num}\n→ 短网址短码: "${shortStr}" (长度: ${shortStr.length})\n完整短网址: https://tiny.url/${shortStr}`;
@@ -525,6 +683,12 @@ function initPlaygroundEvents(chapter) {
 
     document.getElementById("base62DecodeBtn")?.addEventListener("click", () => {
       const str = document.getElementById("base62StrInput").value.trim();
+      // indexOf returns -1 for characters outside the charset, which
+      // silently decodes to a negative ID (e.g. "!!!" -> -3907).
+      if (!str || [...str].some(ch => CHARSET.indexOf(ch) === -1)) {
+        outputEl.textContent = "短码只能包含 0-9、a-z、A-Z 字符。";
+        return;
+      }
       const num = decode62(str);
       outputEl.textContent = `[Base62 反解还原]:\n短码: "${str}"\n→ 还原十进制数据库唯一 ID: ${num.toString()}\n可直接 O(1) 命中数据库主键索引！`;
     });
@@ -536,6 +700,14 @@ function initPlaygroundEvents(chapter) {
       const lat = parseFloat(document.getElementById("geoLat").value);
       const lon = parseFloat(document.getElementById("geoLon").value);
       const prec = parseInt(document.getElementById("geoPrecision").value, 10);
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        outputEl.textContent = "纬度需在 -90 ~ 90 之间。";
+        return;
+      }
+      if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
+        outputEl.textContent = "经度需在 -180 ~ 180 之间。";
+        return;
+      }
       
       // Simple geohash encoder simulation
       const base32 = "0123456789bcdefghjkmnpqrstuvwxyz";
@@ -559,33 +731,136 @@ function initPlaygroundEvents(chapter) {
     });
   }
 
-  // 7. Limit Order Book
-  else if (chapter.id === "v2-ch13") {
-    document.getElementById("orderSubmitBtn")?.addEventListener("click", () => {
-      const side = document.getElementById("orderSide").value;
-      const price = parseFloat(document.getElementById("orderPrice").value);
-      const qty = parseInt(document.getElementById("orderQty").value, 10);
-
-      if (side === "BUY" && price >= 100.25) {
-        outputEl.textContent = `[撮合成功 Trade Executed!]\n买单 $${price.toFixed(2)} (${qty}股) 跨越价差！\n与对侧 Best Ask $100.25 撮合成交 ${qty} 股！\n成交均价: $100.25 (被挂单方价格优先成交)`;
-        outputEl.style.color = "var(--success-text)";
-      } else if (side === "SELL" && price <= 100.20) {
-        outputEl.textContent = `[撮合成功 Trade Executed!]\n卖单 $${price.toFixed(2)} (${qty}股) 跨越价差！\n与对侧 Best Bid $100.20 撮合成交 ${qty} 股！\n成交均价: $100.20`;
-        outputEl.style.color = "var(--success-text)";
-      } else {
-        outputEl.textContent = `[挂单排队 Resting Order]\n未跨越买卖价差 (Spread: $100.20 - $100.25)。\n订单已存入 ${side === "BUY" ? "Bids 买单队列" : "Asks 卖单队列"} 价格档位 $${price.toFixed(2)} 尾部 (FIFO)`;
-        outputEl.style.color = "var(--warning-color)";
+  // 7. Skip List Leaderboard
+  // The UI had Insert / Rank buttons but no handler was ever bound, so
+  // both were dead. Mini leaderboard mirroring SkipListLeaderboard
+  // semantics: add() upserts, rank is 1-based by score desc with the
+  // member-name lexicographic tiebreak, getTopK lists the leaders.
+  else if (chapter.id === "v2-ch10") {
+    const board = new Map([
+      ["Dragon_King", 3200],
+      ["ShadowFox", 2980],
+      ["PixelMage", 2750],
+      ["IronWolf", 2400],
+      ["NovaStar", 2100],
+      ["SilentArrow", 1850]
+    ]);
+    const sorted = () => [...board.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    function renderBoard(note) {
+      const top = sorted().slice(0, 5);
+      outputEl.textContent = note + "\n\n全服 Top 5：\n" +
+        top.map(([m, sc], i) => `#${i + 1} ${m} — ${sc} 分`).join("\n") +
+        `\n\n榜单共 ${board.size} 名玩家`;
+    }
+    renderBoard("跳表已初始化，已包含预置天梯榜玩家数据。");
+    document.getElementById("skipAddBtn")?.addEventListener("click", () => {
+      const user = document.getElementById("skipUser").value.trim();
+      const score = parseInt(document.getElementById("skipScore").value, 10);
+      if (!user) { outputEl.textContent = "请输入玩家名称。"; return; }
+      if (!Number.isFinite(score)) { outputEl.textContent = "请输入有效的积分数值。"; return; }
+      const isNew = !board.has(user);
+      board.set(user, score);
+      const rank = sorted().findIndex(([m]) => m === user) + 1;
+      renderBoard(`[${isNew ? "插入" : "更新"}] 玩家 ${user} 积分设为 ${score}，当前全服第 ${rank} 名。`);
+    });
+    document.getElementById("skipQueryRankBtn")?.addEventListener("click", () => {
+      const user = document.getElementById("skipUser").value.trim();
+      if (!user) { outputEl.textContent = "请输入玩家名称。"; return; }
+      if (!board.has(user)) {
+        outputEl.textContent = `玩家 ${user} 不在榜单中。先点击“插入/更新玩家得分”将其加入榜单。`;
+        return;
       }
+      const rank = sorted().findIndex(([m]) => m === user) + 1;
+      renderBoard(`玩家 ${user}：${board.get(user)} 分，全服第 ${rank} 名（共 ${board.size} 人）。`);
     });
   }
 
-  // Default fallback run
+  // 8. Limit Order Book
+  // Stateful mini book mirroring MatchingEngine semantics: price-time
+  // priority, trade at the resting order's price, partial fills, the
+  // remainder rests on the book. (The old demo was a static if/else
+  // against fixed best bid/ask: it "matched" the same 100 shares
+  // forever and the book never changed.)
+  else if (chapter.id === "v2-ch13") {
+    let nextId = 1;
+    const bids = [{ id: nextId++, price: 100.20, qty: 500 }]; // highest first
+    const asks = [{ id: nextId++, price: 100.25, qty: 350 }]; // lowest first
+    function bookLine() {
+      const bb = bids.length ? bids[0].price : null;
+      const ba = asks.length ? asks[0].price : null;
+      const spread = bb !== null && ba !== null ? `$${(ba - bb).toFixed(2)}` : "—";
+      const bidQty = bids.reduce((n, o) => n + o.qty, 0);
+      const askQty = asks.reduce((n, o) => n + o.qty, 0);
+      return `盘口：最高买 $${bb !== null ? bb.toFixed(2) : "—"}（${bidQty}股） / 最低卖 $${ba !== null ? ba.toFixed(2) : "—"}（${askQty}股） / 价差 ${spread}`;
+    }
+    document.getElementById("orderSubmitBtn")?.addEventListener("click", () => {
+      const side = document.getElementById("orderSide").value;
+      const price = parseFloat(document.getElementById("orderPrice").value);
+      const qty0 = parseInt(document.getElementById("orderQty").value, 10);
+      if (!Number.isFinite(price) || price <= 0) {
+        outputEl.textContent = "请输入有效的价格（大于 0）。";
+        return;
+      }
+      if (!Number.isFinite(qty0) || qty0 <= 0) {
+        outputEl.textContent = "请输入有效的数量（大于 0 的整数）。";
+        return;
+      }
+      let qty = qty0;
+      const trades = [];
+      if (side === "BUY") {
+        while (asks.length > 0 && qty > 0 && price >= asks[0].price) {
+          const ask = asks[0];
+          const fill = Math.min(qty, ask.qty);
+          trades.push({ price: ask.price, qty: fill });
+          qty -= fill;
+          ask.qty -= fill;
+          if (ask.qty === 0) asks.shift();
+        }
+        if (qty > 0) {
+          bids.push({ id: nextId++, price, qty });
+          bids.sort((a, b) => b.price - a.price || a.id - b.id);
+        }
+      } else {
+        while (bids.length > 0 && qty > 0 && price <= bids[0].price) {
+          const bid = bids[0];
+          const fill = Math.min(qty, bid.qty);
+          trades.push({ price: bid.price, qty: fill });
+          qty -= fill;
+          bid.qty -= fill;
+          if (bid.qty === 0) bids.shift();
+        }
+        if (qty > 0) {
+          asks.push({ id: nextId++, price, qty });
+          asks.sort((a, b) => a.price - b.price || a.id - b.id);
+        }
+      }
+      const lines = [];
+      if (trades.length > 0) {
+        const filled = trades.reduce((n, t) => n + t.qty, 0);
+        lines.push(`[撮合成功 Trade Executed!] ${side === "BUY" ? "买" : "卖"}单 $${price.toFixed(2)}（${qty0}股）：`);
+        trades.forEach(t => lines.push(`• 成交 ${t.qty} 股 @ $${t.price.toFixed(2)}（以先挂簿的价格成交）`));
+        if (qty > 0) lines.push(`• 剩余 ${qty} 股未成交，已挂入${side === "BUY" ? "买" : "卖"}单簿 $${price.toFixed(2)} 档位（部分成交）`);
+        else lines.push(`• 全部 ${filled} 股成交，无剩余挂单`);
+        outputEl.style.color = "var(--success-text)";
+      } else {
+        lines.push("[挂单排队 Resting Order] 未跨越买卖价差。");
+        lines.push(`订单已存入 ${side === "BUY" ? "Bids 买单队列" : "Asks 卖单队列"} $${price.toFixed(2)} 档位尾部（FIFO）`);
+        outputEl.style.color = "var(--warning-color)";
+      }
+      lines.push("");
+      lines.push(bookLine());
+      outputEl.textContent = lines.join("\n");
+    });
+  }
+
+  // Default fallback: no fake test run. The old handler printed a
+  // hardcoded "PASS (100% 覆盖通过)" without executing anything.
   else {
     document.getElementById("defaultRunBtn")?.addEventListener("click", () => {
-      outputEl.textContent = `正在运行 ${chapter.titleZh} 核心算法单元测试...\n` +
-        `• 复杂度模型校验: ${chapter.complexity}\n` +
-        `• 单元测试状态: PASS (100% 覆盖通过)\n` +
-        `• 模块路径: ${chapter.files[0]?.path || "src/"}`;
+      outputEl.textContent = `${chapter.titleZh}\n` +
+        `• 复杂度模型：${chapter.complexity}\n` +
+        `• 模块路径：${chapter.files.map(f => f.path).join("、")}\n` +
+        `• 单元测试请在终端运行 npm test 查看结果（全仓库 58 项测试）。`;
     });
   }
 }
@@ -594,6 +869,11 @@ function initPlaygroundEvents(chapter) {
  * Initialize Application Listeners
  */
 function init() {
+  // Sync the toggle label with the stored theme: the button HTML
+  // hardcodes "🌙 暗黑模式", so a saved light theme loaded with a
+  // label claiming dark mode.
+  document.getElementById("themeToggleBtn").innerHTML = state.theme === "dark" ? "🌙 暗黑模式" : "☀️ 明亮模式";
+
   // Volume Tab Switching
   document.getElementById("tabVol1")?.addEventListener("click", e => {
     state.currentVol = 1;
@@ -623,7 +903,11 @@ function init() {
     document.documentElement.setAttribute("data-theme", nextTheme);
     updateHljsTheme(nextTheme);
     document.getElementById("themeToggleBtn").innerHTML = nextTheme === "dark" ? "🌙 暗黑模式" : "☀️ 明亮模式";
-    
+
+    // Mermaid keeps the theme it was initialized with; re-initialize
+    // before re-rendering or diagrams stay in the old theme.
+    initMermaid(nextTheme);
+
     // Re-render current chapter to adjust mermaid
     selectChapter(state.activeChapterId);
   });
