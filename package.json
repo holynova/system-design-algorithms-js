@@ -9,7 +9,7 @@
     "demo": "node examples/run-all-demos.js",
     "web": "node web/server.js"
   },
-  "homepage": "https://holynova.github.io/system-design-algorithms-js/",
+  "homepage": "https://system-design-algorithms-js.xiaosang.cc/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/holynova/system-design-algorithms-js.git"
