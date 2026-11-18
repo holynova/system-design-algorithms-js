@@ -1,24 +1,24 @@
+<p align="right"><a href="README.en.md">English</a></p>
+
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%" alt="系统设计算法 JS — 一致性哈希环与 Snowflake 64 位布局示意图：环上节点与键顺时针寻址，比特条 1+41+5+5+12">
 </p>
 
 <p align="center">
-  <a href="https://xiaosang.cc/system-design-algorithms-js/">▶ 在线实验室 Play Online</a>
+  <a href="https://xiaosang.cc/system-design-algorithms-js/">▶ 在线实验室</a>
   ·
   <a href="https://github.com/holynova/system-design-algorithms-js">GitHub 仓库</a>
 </p>
 
 系统设计算法 JS 是 Alex Xu《System Design Interview: An Insider's Guide》第一卷与第二卷全部 28 章的经典算法与数据结构实现，用原生 JavaScript（Node.js ES Modules）手写，零第三方依赖。每个算法文件自包含可运行的演示，附 58 个单元测试与一个可交互的 Web 实验室。
 
-System Design Algorithms in JS implements the classic algorithms and data structures from all 28 chapters of Alex Xu's *System Design Interview: An Insider's Guide* (Volumes 1 & 2) in vanilla JavaScript (Node.js ES Modules), zero dependencies. Every module is self-contained and runnable, with 58 unit tests and an interactive web lab.
-
-## 截图 / Screenshots
+## 截图
 
 <p align="center">
   <img src="./assets/readme/screenshot.png" width="700" alt="Web 实验室：第 1 章 LRU 与 LFU 缓存策略，左侧 28 章目录，右侧原理讲解与复杂度标签">
 </p>
 
-## 目录 / Catalog
+## 目录
 
 完整目录与复杂度见 [`CATALOG.md`](./CATALOG.md)。第一卷 15 章、第二卷 13 章，共 49 个算法模块：
 
@@ -60,7 +60,7 @@ System Design Algorithms in JS implements the classic algorithms and data struct
 | 12 | 数字钱包 | Saga 编排器、两阶段提交（2PC） |
 | 13 | 股票交易所 | 撮合引擎与限价订单簿（价格-时间优先） |
 
-## 快速上手 / Quick Start
+## 快速上手
 
 零依赖，Node.js ≥ 18，无需 `npm install`：
 
@@ -78,11 +78,11 @@ node src/v1/ch05-consistent-hash/consistent-hash-ring.js
 node src/v1/ch04-rate-limiter/token-bucket.js
 ```
 
-## 交互实验室 / Web Lab
+## 交互实验室
 
 `index.html` + `web/` 是 28 章的在线实验室：每章有场景背景、原理讲解、SVG 架构图、Mermaid 时序图与源码浏览器，还有可调参的操练台——限流器流量注入、雪花 ID 生成与逆向解析、哈希环扩缩容模拟、订单簿实时撮合。支持搜索与深浅主题切换。
 
-## 技术 / Tech
+## 技术
 
 - 纯 Node.js 原生 ES Modules，零 npm 依赖；测试用 Node 内置 `node:test`。
 - 教学注释详尽：每个文件顶部有原书背景、数学模型、ASCII 拓扑与复杂度分析。
@@ -98,12 +98,3 @@ examples/               全算法终端演示入口
 web/                    交互实验室（app.js / data.js / svg-diagrams.js）
 CATALOG.md              28 章全景索引与复杂度表
 ```
-
-## English
-
-**System Design Algorithms in JS** — the classic algorithms from all 28 chapters of Alex Xu's *System Design Interview* (Vol. 1 & 2), implemented in vanilla JavaScript with zero dependencies.
-
-- **28 chapters, 49 modules**: LRU/LFU, 5 rate limiters, consistent hashing, Bloom filter, Merkle tree, Snowflake, GeoHash, A*, skip list, Saga/2PC, matching engine, and more. Full index in `CATALOG.md`.
-- **Verified**: 58 unit tests across 30 suites, all passing (`npm test`, Node's built-in runner, ~0.4s).
-- **Interactive web lab**: per-chapter context, SVG architecture diagrams, Mermaid charts, source browser, and live playgrounds (rate-limiter injection, Snowflake encode/decode, hash-ring scaling, order-book matching).
-- **Run it**: no install needed — `node src/v1/ch05-consistent-hash/consistent-hash-ring.js` runs any single algorithm with its built-in demo.
